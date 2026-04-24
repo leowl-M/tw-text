@@ -1173,6 +1173,8 @@ function canvasToPngBlob(){
     canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PNG encode failed')),'image/png')
   })
 }
+
+// *** FIX APPLICATO QUI: Intercettazione metadata per iOS/Safari ***
 document.getElementById('mp4-btn').addEventListener('click',async()=>{
   if(isCapturing) return
   if(!window.VideoEncoder){ setMP4Status('Errore: WebCodecs non supportato (Chrome 94+)'); return }
@@ -1185,7 +1187,20 @@ document.getElementById('mp4-btn').addEventListener('click',async()=>{
     const {Muxer,ArrayBufferTarget}=await getMuxer()
     const target=new ArrayBufferTarget()
     const muxer=new Muxer({target,video:{codec:'avc',width:w,height:h},fastStart:'in-memory'})
-    const encoder=new VideoEncoder({output:(chunk,meta)=>muxer.addVideoChunk(chunk,meta),error:e=>{throw e}})
+    
+    const encoder=new VideoEncoder({
+      output: (chunk, meta) => {
+        if (meta && meta.decoderConfig && meta.decoderConfig.colorSpace === null) {
+          const safeMeta = { ...meta, decoderConfig: { ...meta.decoderConfig } };
+          delete safeMeta.decoderConfig.colorSpace;
+          muxer.addVideoChunk(chunk, safeMeta);
+        } else {
+          muxer.addVideoChunk(chunk, meta);
+        }
+      },
+      error: e => { throw e }
+    })
+    
     encoder.configure({codec:'avc1.640034',width:w,height:h,bitrate:20_000_000,framerate:fps})
     hideTransformHandles=true
     isPaused=true; lastAutoTriggerTime=-Infinity
@@ -1208,6 +1223,7 @@ document.getElementById('mp4-btn').addEventListener('click',async()=>{
   } catch(err){ console.error(err); setMP4Status('Errore: '+(err.message||err)); isPaused=false; S.lotties.forEach(l=>l.anim.play()); hideTransformHandles=false }
   btn.disabled=false; btn.textContent='Export MP4'; isCapturing=false
 })
+
 document.getElementById('seq-btn').addEventListener('click',async()=>{
   if(isExportingSequence) return
   isExportingSequence=true
