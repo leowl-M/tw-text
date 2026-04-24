@@ -925,12 +925,17 @@ document.getElementById('lottie-add-btn').addEventListener('click', () => {
   })
 })
 
-// Canvas drag to reposition lottie
-canvas.addEventListener('mousedown', e => {
+// Canvas drag to reposition lottie (mouse + touch + pen)
+function pointerToCanvasPoint(e) {
   const rect = canvas.getBoundingClientRect()
   const sx = canvas.width / rect.width, sy = canvas.height / rect.height
   const mx = (e.clientX - rect.left) * sx
   const my = (e.clientY - rect.top)  * sy
+  return { mx, my }
+}
+
+canvas.addEventListener('pointerdown', e => {
+  const { mx, my } = pointerToCanvasPoint(e)
   for (let i = S.lotties.length - 1; i >= 0; i--) {
     const l  = S.lotties[i]
     const lx = l.xPct / 100 * canvas.width
@@ -939,20 +944,21 @@ canvas.addEventListener('mousedown', e => {
     const hh = l.animH * l.scale * 0.5
     if (mx >= lx - hw && mx <= lx + hw && my >= ly - hh && my <= ly + hh) {
       draggingLottieIdx = i; lDragOffX = mx - lx; lDragOffY = my - ly
-      setActiveLottie(i); e.preventDefault(); break
+      setActiveLottie(i)
+      canvas.setPointerCapture(e.pointerId)
+      e.preventDefault()
+      break
     }
   }
-})
-canvas.addEventListener('mousemove', e => {
-  const rect = canvas.getBoundingClientRect()
-  const sx = canvas.width / rect.width, sy = canvas.height / rect.height
-  const mx = (e.clientX - rect.left) * sx
-  const my = (e.clientY - rect.top)  * sy
+}, { passive: false })
+canvas.addEventListener('pointermove', e => {
+  const { mx, my } = pointerToCanvasPoint(e)
   if (draggingLottieIdx >= 0) {
     const l = S.lotties[draggingLottieIdx]
     l.xPct = Math.max(0, Math.min(100, (mx - lDragOffX) / canvas.width  * 100))
     l.yPct = Math.max(0, Math.min(100, (my - lDragOffY) / canvas.height * 100))
     syncLottieSliders()
+    e.preventDefault()
     return
   }
   let hover = false
@@ -964,9 +970,15 @@ canvas.addEventListener('mousemove', e => {
     }
   }
   canvas.style.cursor = hover ? 'move' : 'default'
+}, { passive: false })
+canvas.addEventListener('pointerup', e => {
+  draggingLottieIdx = -1
+  if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId)
 })
-canvas.addEventListener('mouseup',    () => { draggingLottieIdx = -1 })
-canvas.addEventListener('mouseleave', () => { draggingLottieIdx = -1 })
+canvas.addEventListener('pointercancel', e => {
+  draggingLottieIdx = -1
+  if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId)
+})
 
 // ── RECORDING ──────────────────────────────────────────────────
 let recorder = null, recChunks = [], recActive = false

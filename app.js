@@ -71,6 +71,16 @@ let dragMode = null  // null | 'move' | 'rotate' | 'scale'
 let dragStart = {}
 let draggingLottieIdx = -1, lDragOffX = 0, lDragOffY = 0
 let hideTransformHandles = false
+let touchGesture = null
+let activeGuides = { v:false, h:false, rot:false }
+let pressTimer = null
+let pressStart = null
+let lastHapticAt = 0
+
+const SNAP_MOVE_PX = 18
+const SNAP_ROT_DEG = 6
+const LONG_PRESS_MS = 420
+const LONG_PRESS_MOVE_TOL = 14
 
 const canvas = document.getElementById('canvas')
 const ctx    = canvas.getContext('2d')
@@ -218,6 +228,47 @@ function drawHandlesOnCtx() {
   ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=1.5; ctx.stroke()
 
   ctx.restore()
+}
+
+function drawSnapGuides() {
+  const { w, h } = FORMATS[S.format]
+  if (!activeGuides.v && !activeGuides.h && !activeGuides.rot) return
+  ctx.save()
+  ctx.strokeStyle = 'rgba(206,255,0,0.9)'
+  ctx.lineWidth = 2
+  ctx.setLineDash([12, 8])
+  if (activeGuides.v) {
+    ctx.beginPath()
+    ctx.moveTo(w / 2, 0)
+    ctx.lineTo(w / 2, h)
+    ctx.stroke()
+  }
+  if (activeGuides.h) {
+    ctx.beginPath()
+    ctx.moveTo(0, h / 2)
+    ctx.lineTo(w, h / 2)
+    ctx.stroke()
+  }
+  if (activeGuides.rot) {
+    const t = activeText()
+    const cx = t.textXPct / 100 * w
+    const cy = t.textYPct / 100 * h
+    const len = Math.max(t._bboxW, t._bboxH, 180) * 0.7
+    const ang = t.textRotation * Math.PI / 180
+    ctx.beginPath()
+    ctx.moveTo(cx - Math.cos(ang) * len, cy - Math.sin(ang) * len)
+    ctx.lineTo(cx + Math.cos(ang) * len, cy + Math.sin(ang) * len)
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
+function hapticTick() {
+  if (!('vibrate' in navigator)) return
+  const now = performance.now()
+  if (now - lastHapticAt < 80) return
+  lastHapticAt = now
+  navigator.vibrate(10)
 }
 
 function drawLineWithEffect(text, startX, startY, li, now, effectIntensity, maxW, cW, cH) {
@@ -392,6 +443,7 @@ function drawFrame(simNow) {
 
   // handles (inside globalScale context)
   if(!hideTransformHandles) drawHandlesOnCtx()
+  drawSnapGuides()
 
   ctx.restore() // global scale
 }
@@ -517,7 +569,51 @@ function syncTextUI(){
   document.getElementById('text-hex').textContent=isTransparent ? 'TRANSPARENT' : t.textColor.toUpperCase()
   syncTextLayerSelect()
   syncTextSliders()
+  syncLayerToolbar()
 }
+
+function duplicateActiveText(){
+  const t = activeText()
+  const copy = {
+    ...t,
+    id: makeTextLayer('').id,
+    textXPct: Math.min(100, t.textXPct + 2),
+    textYPct: Math.min(100, t.textYPct + 2),
+  }
+  S.texts.push(copy)
+  setActiveText(copy.id)
+  recalcFont()
+}
+
+function removeActiveText(){
+  if(S.texts.length<=1) return
+  const idx=S.texts.findIndex(t=>t.id===S.activeTextId)
+  if(idx<0) return
+  S.texts.splice(idx,1)
+  setActiveText(S.texts[Math.max(0,idx-1)].id)
+  recalcFont()
+}
+
+function moveActiveTextLayer(dir){
+  const idx=S.texts.findIndex(t=>t.id===S.activeTextId)
+  const target=idx+dir
+  if(idx<0 || target<0 || target>=S.texts.length) return
+  const [item]=S.texts.splice(idx,1)
+  S.texts.splice(target,0,item)
+  syncLayerToolbar()
+}
+
+function syncLayerToolbar(){
+  const down=document.getElementById('layer-down-btn')
+  const up=document.getElementById('layer-up-btn')
+  const del=document.getElementById('layer-delete-btn')
+  if(!down || !up || !del) return
+  const idx=S.texts.findIndex(t=>t.id===S.activeTextId)
+  down.disabled=idx<=0
+  up.disabled=idx<0 || idx>=S.texts.length-1
+  del.disabled=S.texts.length<=1
+}
+
 document.getElementById('text-layer-select').addEventListener('change',e=>setActiveText(e.target.value))
 document.getElementById('text-add-btn').addEventListener('click',()=>{
   const t=makeTextLayer(`TESTO ${S.texts.length+1}`)
@@ -527,13 +623,12 @@ document.getElementById('text-add-btn').addEventListener('click',()=>{
   recalcFont()
 })
 document.getElementById('text-remove-btn').addEventListener('click',()=>{
-  if(S.texts.length<=1) return
-  const idx=S.texts.findIndex(t=>t.id===S.activeTextId)
-  if(idx<0) return
-  S.texts.splice(idx,1)
-  setActiveText(S.texts[Math.max(0,idx-1)].id)
-  recalcFont()
+  removeActiveText()
 })
+document.getElementById('layer-duplicate-btn')?.addEventListener('click', duplicateActiveText)
+document.getElementById('layer-delete-btn')?.addEventListener('click', removeActiveText)
+document.getElementById('layer-up-btn')?.addEventListener('click', ()=>moveActiveTextLayer(1))
+document.getElementById('layer-down-btn')?.addEventListener('click', ()=>moveActiveTextLayer(-1))
 document.getElementById('text-input').addEventListener('input',e=>{ activeText().text=e.target.value||'A'; recalcFont(); syncTextLayerSelect() })
 document.querySelectorAll('.fmt-btn').forEach(b=>b.addEventListener('click',()=>setFormat(b.dataset.fmt)))
 document.querySelectorAll('.align-btn').forEach(b=>{
@@ -655,8 +750,8 @@ document.getElementById('remove-img').addEventListener('click',()=>{
   ;['img-thumb','img-scale-row','img-opacity-row','img-corner-radius-row','remove-img'].forEach(id=>document.getElementById(id).style.display='none')
 })
 
-// --- canvas mouse interaction ---
-function getCanvasMouse(e){
+// --- canvas pointer interaction (mouse + touch + pen) ---
+function getCanvasPoint(e){
   const rect=canvas.getBoundingClientRect()
   return {
     x:(e.clientX-rect.left)*canvas.width/rect.width,
@@ -664,16 +759,103 @@ function getCanvasMouse(e){
   }
 }
 
-canvas.addEventListener('mousedown',e=>{
-  const {x:rx,y:ry}=getCanvasMouse(e)
+function resetCanvasInteraction(){
+  dragMode=null
+  draggingLottieIdx=-1
+  activeGuides.v = false
+  activeGuides.h = false
+  activeGuides.rot = false
+}
+
+function snapMove(cx, cy, w, h) {
+  let sx = cx
+  let sy = cy
+  let snapped = false
+  const centerX = w / 2
+  const centerY = h / 2
+  activeGuides.v = Math.abs(cx - centerX) <= SNAP_MOVE_PX
+  activeGuides.h = Math.abs(cy - centerY) <= SNAP_MOVE_PX
+  if (activeGuides.v) { sx = centerX; snapped = true }
+  if (activeGuides.h) { sy = centerY; snapped = true }
+  return { x: sx, y: sy, snapped }
+}
+
+function snapRotation(deg) {
+  const baseAngles = [-180, -135, -90, -45, 0, 45, 90, 135, 180]
+  let snappedDeg = deg
+  let snapped = false
+  for (const target of baseAngles) {
+    if (Math.abs(deg - target) <= SNAP_ROT_DEG) {
+      snappedDeg = target
+      snapped = true
+      break
+    }
+  }
+  activeGuides.rot = snapped
+  return { deg: snappedDeg, snapped }
+}
+
+function getTopTextAt(mx, my) {
+  for(let i=S.texts.length-1;i>=0;i--){
+    if(mouseInTextBox(mx,my,S.texts[i])) return S.texts[i]
+  }
+  return null
+}
+
+function getTextsAt(mx, my) {
+  const hit=[]
+  for(let i=0;i<S.texts.length;i++){
+    if(mouseInTextBox(mx,my,S.texts[i])) hit.push(S.texts[i])
+  }
+  return hit
+}
+
+function clearLongPressTimer() {
+  if (pressTimer) {
+    clearTimeout(pressTimer)
+    pressTimer = null
+  }
+}
+
+function scheduleLongPress(e, mx, my) {
+  if (e.pointerType !== 'touch') return
+  clearLongPressTimer()
+  pressStart = { pointerId:e.pointerId, mx, my }
+  pressTimer = setTimeout(() => {
+    const hits = getTextsAt(pressStart.mx, pressStart.my)
+    if (hits.length > 1) {
+      const idx = hits.findIndex(t => t.id === S.activeTextId)
+      const next = hits[(idx + 1) % hits.length] || hits[0]
+      setActiveText(next.id)
+      hapticTick()
+    } else if (hits.length === 1) {
+      setActiveText(hits[0].id)
+      hapticTick()
+    }
+    pressTimer = null
+  }, LONG_PRESS_MS)
+}
+
+function maybeCancelLongPress(e, mx, my) {
+  if (!pressTimer || !pressStart) return
+  if (pressStart.pointerId !== e.pointerId) return
+  const moved = Math.hypot(mx - pressStart.mx, my - pressStart.my)
+  if (moved > LONG_PRESS_MOVE_TOL || dragMode || draggingLottieIdx >= 0) clearLongPressTimer()
+}
+
+canvas.addEventListener('pointerdown',e=>{
+  if(touchGesture) return
+  const {x:rx,y:ry}=getCanvasPoint(e)
   const {x:mx,y:my}=toLogical(rx,ry)
   const H=getHandlesLogical()
+  scheduleLongPress(e, mx, my)
 
   // rotation handle
   if(dist(mx,my,H.rot.x,H.rot.y)<=HANDLE_R*1.8){
     const ang=Math.atan2(my-H.cy,mx-H.cx)
     dragMode='rotate'
-    dragStart={mx,my,rotation:activeText().textRotation,startAngle:ang}
+    dragStart={mx,my,rotation:activeText().textRotation,startAngle:ang,cx:H.cx,cy:H.cy}
+    canvas.setPointerCapture(e.pointerId)
     e.preventDefault(); return
   }
 
@@ -683,6 +865,7 @@ canvas.addEventListener('mousedown',e=>{
     if(dist(mx,my,pt.x,pt.y)<=HANDLE_R*1.8){
       dragMode='scale'
       dragStart={mx,my,scale:activeText().textScale,cx:H.cx,cy:H.cy,startDist:dist(mx,my,H.cx,H.cy)}
+      canvas.setPointerCapture(e.pointerId)
       e.preventDefault(); return
     }
   }
@@ -694,6 +877,9 @@ canvas.addEventListener('mousedown',e=>{
     const lx=l.xPct/100*w, ly=l.yPct/100*h
     if(Math.abs(mx-lx)<l.animW*l.scale*0.5&&Math.abs(my-ly)<l.animH*l.scale*0.5){
       draggingLottieIdx=i; lDragOffX=mx-lx; lDragOffY=my-ly
+      dragMode='lottie-move'
+      canvas.setPointerCapture(e.pointerId)
+      clearLongPressTimer()
       setActiveLottie(i); e.preventDefault(); return
     }
   }
@@ -708,36 +894,45 @@ canvas.addEventListener('mousedown',e=>{
   if(mouseInTextBox(mx,my)){
     dragMode='move'
     dragStart={mx,my,xPct:activeText().textXPct,yPct:activeText().textYPct}
+    canvas.setPointerCapture(e.pointerId)
+    clearLongPressTimer()
     e.preventDefault(); return
   }
-})
+}, { passive:false })
 
-canvas.addEventListener('mousemove',e=>{
-  const {x:rx,y:ry}=getCanvasMouse(e)
+canvas.addEventListener('pointermove',e=>{
+  if(touchGesture) return
+  const {x:rx,y:ry}=getCanvasPoint(e)
   const {x:mx,y:my}=toLogical(rx,ry)
   const {w,h}=FORMATS[S.format]
+  maybeCancelLongPress(e, mx, my)
 
   if(draggingLottieIdx>=0){
     const l=S.lotties[draggingLottieIdx]
     l.xPct=Math.max(0,Math.min(100,(mx-lDragOffX)/w*100))
     l.yPct=Math.max(0,Math.min(100,(my-lDragOffY)/h*100))
+    if (!canvas.hasPointerCapture(e.pointerId)) canvas.setPointerCapture(e.pointerId)
     syncLottieSliders(); return
   }
 
   if(dragMode==='move'){
     const t=activeText()
-    t.textXPct=Math.max(0,Math.min(100,dragStart.xPct+(mx-dragStart.mx)/w*100))
-    t.textYPct=Math.max(0,Math.min(100,dragStart.yPct+(my-dragStart.my)/h*100))
+    const rawX = (dragStart.xPct/100*w)+(mx-dragStart.mx)
+    const rawY = (dragStart.yPct/100*h)+(my-dragStart.my)
+    const snapped = snapMove(rawX, rawY, w, h)
+    t.textXPct=Math.max(0,Math.min(100,snapped.x/w*100))
+    t.textYPct=Math.max(0,Math.min(100,snapped.y/h*100))
+    if (snapped.snapped) hapticTick()
     syncTextSliders(); return
   }
 
   if(dragMode==='rotate'){
     const t=activeText()
-    const curAng=Math.atan2(my-dragStart.cy||t.textYPct/100*h, mx-dragStart.cx||t.textXPct/100*w)
-    const H=getHandlesLogical()
-    const newAng=Math.atan2(my-H.cy,mx-H.cx)
+    const newAng=Math.atan2(my-dragStart.cy,mx-dragStart.cx)
     const delta=(newAng-dragStart.startAngle)*180/Math.PI
-    t.textRotation=dragStart.rotation+delta
+    const snapped = snapRotation(dragStart.rotation+delta)
+    t.textRotation=snapped.deg
+    if (snapped.snapped) hapticTick()
     syncTextSliders(); return
   }
 
@@ -760,13 +955,101 @@ canvas.addEventListener('mousemove',e=>{
     canvas.style.cursor='move'
   } else if(mouseInTextBox(mx,my)){
     canvas.style.cursor='move'
+    activeGuides.v = false
+    activeGuides.h = false
+    activeGuides.rot = false
   } else {
     canvas.style.cursor='default'
+    activeGuides.v = false
+    activeGuides.h = false
+    activeGuides.rot = false
   }
+}, { passive:false })
+
+canvas.addEventListener('pointerup',e=>{
+  clearLongPressTimer()
+  pressStart = null
+  resetCanvasInteraction()
+  if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId)
+})
+canvas.addEventListener('pointercancel',e=>{
+  clearLongPressTimer()
+  pressStart = null
+  resetCanvasInteraction()
+  if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId)
+})
+canvas.addEventListener('mouseleave',()=>{
+  clearLongPressTimer()
+  pressStart = null
+  resetCanvasInteraction()
 })
 
-canvas.addEventListener('mouseup',()=>{ dragMode=null; draggingLottieIdx=-1 })
-canvas.addEventListener('mouseleave',()=>{ dragMode=null; draggingLottieIdx=-1 })
+function getTouchLogicalPoint(touch){
+  const rect=canvas.getBoundingClientRect()
+  const rx=(touch.clientX-rect.left)*canvas.width/rect.width
+  const ry=(touch.clientY-rect.top)*canvas.height/rect.height
+  return toLogical(rx,ry)
+}
+function touchDistance(a,b){ return Math.hypot(a.x-b.x,a.y-b.y) }
+function touchAngle(a,b){ return Math.atan2(b.y-a.y,b.x-a.x) }
+
+canvas.addEventListener('touchstart',e=>{
+  if(e.touches.length!==2) return
+  const p1=getTouchLogicalPoint(e.touches[0])
+  const p2=getTouchLogicalPoint(e.touches[1])
+  const mid={x:(p1.x+p2.x)/2,y:(p1.y+p2.y)/2}
+  const t=activeText()
+  touchGesture={
+    startDist:touchDistance(p1,p2),
+    startAngle:touchAngle(p1,p2),
+    startScale:t.textScale,
+    startRotation:t.textRotation,
+    startMid:mid,
+    startXPct:t.textXPct,
+    startYPct:t.textYPct,
+  }
+  resetCanvasInteraction()
+  e.preventDefault()
+},{ passive:false })
+
+canvas.addEventListener('touchmove',e=>{
+  if(!touchGesture || e.touches.length!==2) return
+  const {w,h}=FORMATS[S.format]
+  const t=activeText()
+  const p1=getTouchLogicalPoint(e.touches[0])
+  const p2=getTouchLogicalPoint(e.touches[1])
+  const mid={x:(p1.x+p2.x)/2,y:(p1.y+p2.y)/2}
+  const curDist=touchDistance(p1,p2)
+  const curAngle=touchAngle(p1,p2)
+  if(touchGesture.startDist>0){
+    t.textScale=Math.max(0.05,Math.min(2.0,touchGesture.startScale*(curDist/touchGesture.startDist)))
+  }
+  const rotSnap = snapRotation(touchGesture.startRotation + ((curAngle-touchGesture.startAngle)*180/Math.PI))
+  t.textRotation=rotSnap.deg
+  const rawX = (touchGesture.startXPct/100*w) + (mid.x-touchGesture.startMid.x)
+  const rawY = (touchGesture.startYPct/100*h) + (mid.y-touchGesture.startMid.y)
+  const moveSnap = snapMove(rawX, rawY, w, h)
+  t.textXPct=Math.max(0,Math.min(100,moveSnap.x/w*100))
+  t.textYPct=Math.max(0,Math.min(100,moveSnap.y/h*100))
+  if (rotSnap.snapped || moveSnap.snapped) hapticTick()
+  syncTextSliders()
+  e.preventDefault()
+},{ passive:false })
+
+canvas.addEventListener('touchend',e=>{
+  if(e.touches.length<2){
+    touchGesture=null
+    activeGuides.v = false
+    activeGuides.h = false
+    activeGuides.rot = false
+  }
+},{ passive:false })
+canvas.addEventListener('touchcancel',()=>{
+  touchGesture=null
+  activeGuides.v = false
+  activeGuides.h = false
+  activeGuides.rot = false
+},{ passive:false })
 
 // --- lottie system (same as original) ---
 function setLottieStatus(msg,color){ const el=document.getElementById('lottie-status'); if(el){el.textContent=msg;el.style.color=color||'#737373'} }
@@ -1032,6 +1315,45 @@ document.getElementById('preset-load-input').addEventListener('change',function(
   }
   reader.readAsText(file); this.value=''
 })
+
+// mobile controls bottom sheet
+;(function setupMobileControls(){
+  const app = document.querySelector('.app')
+  const sidebar = document.getElementById('controls')
+  const toggleBtn = document.getElementById('mobile-controls-toggle')
+  const backdrop = document.getElementById('mobile-backdrop')
+  if(!app || !sidebar || !toggleBtn || !backdrop) return
+
+  const mq = window.matchMedia('(max-width: 860px)')
+
+  function setOpen(open){
+    app.classList.toggle('mobile-controls-open', open)
+    toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false')
+    toggleBtn.textContent = open ? 'Chiudi controlli' : 'Controlli'
+    backdrop.hidden = !open
+    document.body.classList.toggle('mobile-ui-lock', open && mq.matches)
+  }
+
+  function syncByViewport(){
+    if(!mq.matches) {
+      setOpen(false)
+      toggleBtn.style.display = 'none'
+    } else {
+      toggleBtn.style.display = 'inline-flex'
+    }
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    const isOpen = app.classList.contains('mobile-controls-open')
+    setOpen(!isOpen)
+  })
+  backdrop.addEventListener('click', () => setOpen(false))
+  window.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && app.classList.contains('mobile-controls-open')) setOpen(false)
+  })
+  mq.addEventListener('change', syncByViewport)
+  syncByViewport()
+})()
 
 // boot
 setFormat('post')

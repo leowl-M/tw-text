@@ -379,10 +379,19 @@
     <div id="preview" class="preview-wrap">
       <canvas id="canvas"></canvas>
       <div id="fmt-badge">1080 × 1440</div>
+      <div id="layer-toolbar" class="layer-toolbar" aria-label="Layer controls">
+        <button id="layer-down-btn" class="layer-tool-btn" type="button" title="Indietro">-</button>
+        <button id="layer-up-btn" class="layer-tool-btn" type="button" title="Avanti">+</button>
+        <button id="layer-duplicate-btn" class="layer-tool-btn" type="button" title="Duplica">Dup</button>
+        <button id="layer-delete-btn" class="layer-tool-btn layer-tool-btn-danger" type="button" title="Elimina">Del</button>
+      </div>
     </div>
   </main>
 
 </div>
+
+<button id="mobile-controls-toggle" class="mobile-controls-toggle" type="button" aria-expanded="false" aria-controls="controls">Controlli</button>
+<div id="mobile-backdrop" class="mobile-backdrop" hidden></div>
 
 <script src="app.js"></script>
 </body>
