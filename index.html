@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TW Text</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lottie-web@5/build/player/lottie.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="sc">
+<div class="app">
+
+  <aside id="controls" class="sidebar sc">
+
+    <div class="brand">
+      <div class="brand-left">
+        <div class="logo-mark">TW Text</div>
+      </div>
+    </div>
+
+    <!-- PRESET -->
+    <details class="sec" open style="--sec-color:#F7F6EB;">
+      <summary class="sec-head"><span class="sec-title">Preset</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div class="row-gap">
+          <input id="preset-name" type="text" class="ipt" placeholder="nome preset…">
+          <button id="preset-save-btn" class="btn btn-inline">↓ Save</button>
+        </div>
+        <label class="btn btn-ghost-line">↑ Carica preset .json<input type="file" id="preset-load-input" accept=".json" hidden></label>
+        <div id="preset-status" class="status-line"></div>
+      </div>
+    </details>
+
+    <!-- FORMATO -->
+    <details class="sec" open style="--sec-color:var(--blue);">
+      <summary class="sec-head"><span class="sec-title">Formato</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div class="seg" style="--accent:var(--blue);">
+          <div class="fmt-btn active-btn active" data-fmt="post">Post<small>1080×1440</small></div>
+          <div class="fmt-btn active-btn" data-fmt="story">Story<small>1080×1920</small></div>
+          <div class="fmt-btn active-btn" data-fmt="wide">Wide<small>1920×1080</small></div>
+        </div>
+      </div>
+    </details>
+
+    <!-- TESTO -->
+    <details class="sec" open style="--sec-color:var(--lime);">
+      <summary class="sec-head"><span class="sec-title">Testo</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div class="row-gap">
+          <button id="text-add-btn" class="btn btn-inline">+ Aggiungi testo</button>
+          <button id="text-remove-btn" class="btn btn-inline">Rimuovi</button>
+        </div>
+        <select id="text-layer-select" class="ipt ipt-select"></select>
+        <textarea id="text-input" class="ipt ipt-area font-display" rows="2" placeholder="Testo…">DESIGN BOMB!!!</textarea>
+        <div class="lbl">Allineamento</div>
+        <div class="seg" style="--accent:var(--lime);">
+          <div class="align-btn active-btn" data-align="left">← SX</div>
+          <div class="align-btn active-btn active" data-align="center">CTR</div>
+          <div class="align-btn active-btn" data-align="right">DX →</div>
+        </div>
+      </div>
+    </details>
+
+    <!-- TRASFORMA -->
+    <details class="sec" open style="--sec-color:var(--green);">
+      <summary class="sec-head"><span class="sec-title">Trasforma</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div class="row-between">
+          <span class="hint">Trascina sul canvas · angoli=scala · giallo=ruota</span>
+          <button id="reset-transform-btn" class="btn btn-inline">Reset</button>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">X %</label>
+          <input type="range" id="text-x" min="0" max="100" step="0.5" value="50" style="--accent:var(--green);">
+          <span class="val" id="text-x-v">50.0</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Y %</label>
+          <input type="range" id="text-y" min="0" max="100" step="0.5" value="50" style="--accent:var(--green);">
+          <span class="val" id="text-y-v">50.0</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Scala</label>
+          <input type="range" id="text-scale" min="0.05" max="2.0" step="0.01" value="1.0" style="--accent:var(--green);">
+          <span class="val" id="text-scale-v">1.00</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Rotazione</label>
+          <input type="range" id="text-rotation" min="-180" max="180" step="1" value="0" style="--accent:var(--green);">
+          <span class="val" id="text-rotation-v">0°</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- ANIMAZIONE -->
+    <details class="sec" open style="--sec-color:var(--pink);">
+      <summary class="sec-head"><span class="sec-title">Animazione</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div class="row-between">
+          <span class="lbl">Tremolio lettere</span>
+          <button id="tremolio-toggle" class="tog-btn-textual">OFF</button>
+        </div>
+        <div id="tremolio-controls" style="display:none;" class="stack">
+          <div class="slider-row">
+            <label class="lbl">Forza</label>
+            <input type="range" id="tremolio-force" min="0.5" max="20" step="0.5" value="3.0" style="--accent:var(--pink);">
+            <span class="val" id="tremolio-force-v">3.0</span>
+          </div>
+          <div class="slider-row">
+            <label class="lbl">Velocità</label>
+            <input type="range" id="tremolio-speed" min="0.1" max="5.0" step="0.1" value="1.0" style="--accent:var(--pink);">
+            <span class="val" id="tremolio-speed-v">1.0</span>
+          </div>
+        </div>
+        <div class="hairline"></div>
+        <div class="field">
+          <label class="lbl">Effetto globale</label>
+          <select id="autoEffect" class="ipt ipt-select">
+            <option value="none">Disattivato</option>
+            <optgroup label="— Originali —">
+              <option value="explode">Esplosione</option>
+              <option value="glitch">Glitch</option>
+              <option value="wave">Onda</option>
+              <option value="vortex">Vortice</option>
+            </optgroup>
+            <optgroup label="— Nuovi —">
+              <option value="bounce">Rimbalzo</option>
+              <option value="scatter">Dispersione</option>
+              <option value="shake">Tremore</option>
+              <option value="spin">Rotazione</option>
+              <option value="float">Levitazione</option>
+              <option value="rain">Pioggia</option>
+              <option value="zoom">Zoom</option>
+              <option value="chromatic">Aberrazione Cromatica</option>
+              <option value="cascade">Cascata</option>
+              <option value="flicker">Sfarfallio</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Delay ms</label>
+          <input type="range" id="autoDelay" min="200" max="5000" step="100" value="1000" style="--accent:var(--pink);">
+          <span class="val" id="autoDelay-v">1000</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Forza fx</label>
+          <input type="range" id="autoForce" min="1" max="20" step="0.5" value="5.0" style="--accent:var(--pink);">
+          <span class="val" id="autoForce-v">5.0</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Durata</label>
+          <input type="range" id="effectDuration" min="100" max="3000" step="50" value="600" style="--accent:var(--pink);">
+          <span class="val" id="effectDuration-v">600</span>
+        </div>
+        <div class="field">
+          <label class="lbl">Velocità preset</label>
+          <div class="seg" style="--accent:var(--pink);">
+            <div class="speed-preset active-btn" data-ms="200">Snap<small>200</small></div>
+            <div class="speed-preset active-btn active" data-ms="600">Norm<small>600</small></div>
+            <div class="speed-preset active-btn" data-ms="1200">Slow<small>1.2s</small></div>
+            <div class="speed-preset active-btn" data-ms="2400">Dream<small>2.4s</small></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="lbl">Ease IN</label>
+            <select id="easingIn" class="ipt ipt-select">
+              <option value="linear">linear</option>
+              <option value="easeIn">easeIn</option>
+              <option value="easeOut">easeOut</option>
+              <option value="easeInOut" selected>easeInOut</option>
+              <option value="elastic">elastic</option>
+              <option value="bounce">bounce</option>
+              <option value="back">back</option>
+              <option value="sharp">sharp</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="lbl">Ease OUT</label>
+            <select id="easingOut" class="ipt ipt-select">
+              <option value="linear">linear</option>
+              <option value="easeIn">easeIn</option>
+              <option value="easeOut">easeOut</option>
+              <option value="easeInOut" selected>easeInOut</option>
+              <option value="elastic">elastic</option>
+              <option value="bounce">bounce</option>
+              <option value="back">back</option>
+              <option value="sharp">sharp</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- TIPOGRAFIA -->
+    <details class="sec" open style="--sec-color:#F7F6EB;">
+      <summary class="sec-head"><span class="sec-title">Tipografia</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div class="field">
+          <label class="lbl">Font attivo</label>
+          <select id="font-select" class="ipt ipt-select font-display font-display-select">
+            <option value="" disabled>Caricamento font…</option>
+          </select>
+        </div>
+        <div id="font-zone" class="drop">
+          <input type="file" id="font-input" accept=".ttf,.otf,.woff,.woff2" hidden>
+          + Drop font (.ttf .otf .woff)
+        </div>
+        <div id="font-status-msg" class="status-line"></div>
+        <div class="slider-row">
+          <label class="lbl">Crenatura</label>
+          <input type="range" id="kerning" min="-20" max="200" step="1" value="0">
+          <span class="val" id="kerning-v">0</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Interlinea</label>
+          <input type="range" id="lh" min="0.5" max="3.0" step="0.05" value="1.0">
+          <span class="val" id="lh-v">1.0</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- COLORI -->
+    <details class="sec" open style="--sec-color:var(--pink);">
+      <summary class="sec-head"><span class="sec-title">Colori</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div class="grid-2">
+          <div class="color-target selected" id="bg-target" data-target="bg">
+            <div class="sw-dot" id="bg-dot" style="background:#141414"></div>
+            <div><div class="lbl">Sfondo</div><div class="val" id="bg-hex">#141414</div></div>
+          </div>
+          <div class="color-target" id="text-target" data-target="text">
+            <div class="sw-dot" id="text-dot" style="background:#F7F6EB"></div>
+            <div><div class="lbl">Testo</div><div class="val" id="text-hex">#F7F6EB</div></div>
+          </div>
+        </div>
+        <div id="palette" class="palette-grid"></div>
+        <div class="hint">click target → click swatch</div>
+      </div>
+    </details>
+
+    <!-- COMPOSIZIONE -->
+    <details class="sec" style="--sec-color:var(--lime);">
+      <summary class="sec-head"><span class="sec-title">Composizione</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div class="slider-row">
+          <label class="lbl">Scale</label>
+          <input type="range" id="global-scale" min="0.1" max="1.0" step="0.01" value="1.0">
+          <span class="val" id="global-scale-v">1.0</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Padding</label>
+          <input type="range" id="comp-pad-all" min="0" max="400" step="4" value="0">
+          <span class="val" id="comp-pad-all-v">0</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Radius bg</label>
+          <input type="range" id="bg-corner-radius" min="0" max="500" step="4" value="0">
+          <span class="val" id="bg-corner-radius-v">0</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- IMMAGINE -->
+    <details class="sec" style="--sec-color:#F7F6EB;">
+      <summary class="sec-head"><span class="sec-title">Immagine</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div id="upload-zone" class="drop">
+          <input type="file" id="file-input" accept="image/*" hidden>
+          + Drop immagine
+        </div>
+        <img id="img-thumb" class="img-thumb" style="display:none;">
+        <div class="slider-row" id="img-scale-row" style="display:none;">
+          <label class="lbl">Scala</label>
+          <input type="range" id="img-scale" min="0.05" max="2.0" step="0.01" value="1.0">
+          <span class="val" id="img-scale-v">1.0</span>
+        </div>
+        <div class="slider-row" id="img-opacity-row" style="display:none;">
+          <label class="lbl">Opacità</label>
+          <input type="range" id="img-opacity" min="0" max="1" step="0.01" value="1.0">
+          <span class="val" id="img-opacity-v">1.0</span>
+        </div>
+        <div class="slider-row" id="img-corner-radius-row" style="display:none;">
+          <label class="lbl">Arrotond.</label>
+          <input type="range" id="img-corner-radius" min="0" max="500" step="4" value="0">
+          <span class="val" id="img-corner-radius-v">0</span>
+        </div>
+        <button id="remove-img" class="btn" style="display:none;">Rimuovi immagine</button>
+      </div>
+    </details>
+
+    <!-- LOTTIE -->
+    <details class="sec" open style="--sec-color:var(--green);">
+      <summary class="sec-head"><span class="sec-title">Lottie</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div id="lottie-preset-row" class="hidden">
+          <div id="lottie-gallery" class="lottie-gallery"></div>
+          <select id="lottie-select" hidden><option value="">Seleziona…</option></select>
+          <button id="lottie-add-btn" hidden>+</button>
+        </div>
+        <div id="lottie-zone" class="drop">
+          <input type="file" id="lottie-input" accept=".json" multiple hidden>
+          + Drop JSON Lottie
+        </div>
+        <div id="lottie-status" class="status-line"></div>
+        <div id="lottie-list" class="stack stack-tight"></div>
+        <div id="lottie-controls" class="stack hidden">
+          <div class="hairline"></div>
+          <div class="row-between"><span class="lbl">Trasforma</span><span class="hint">drag sul canvas</span></div>
+          <div class="slider-row slider-row-compact">
+            <label class="lbl">X %</label>
+            <input type="range" id="lottie-x" min="0" max="100" step="1" value="50" style="--accent:var(--green);">
+            <span class="val" id="lottie-x-v">50</span>
+          </div>
+          <div class="slider-row slider-row-compact">
+            <label class="lbl">Y %</label>
+            <input type="range" id="lottie-y" min="0" max="100" step="1" value="50" style="--accent:var(--green);">
+            <span class="val" id="lottie-y-v">50</span>
+          </div>
+          <div class="slider-row slider-row-compact">
+            <label class="lbl">Scala</label>
+            <input type="range" id="lottie-scale" min="0.05" max="5.0" step="0.05" value="1.0" style="--accent:var(--green);">
+            <span class="val" id="lottie-scale-v">1.00</span>
+          </div>
+          <div class="slider-row slider-row-compact">
+            <label class="lbl">Opac.</label>
+            <input type="range" id="lottie-opacity" min="0" max="1" step="0.01" value="1.0" style="--accent:var(--green);">
+            <span class="val" id="lottie-opacity-v">1.00</span>
+          </div>
+          <div class="slider-row slider-row-compact">
+            <label class="lbl">Rot.</label>
+            <input type="range" id="lottie-rotation" min="-180" max="180" step="1" value="0" style="--accent:var(--green);">
+            <span class="val" id="lottie-rotation-v">0°</span>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- EXPORT -->
+    <details class="sec" open style="--sec-color:var(--lime);">
+      <summary class="sec-head"><span class="sec-title">Export</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <div class="slider-row">
+          <label class="lbl">Durata s</label>
+          <input type="range" id="duration" min="2" max="60" step="1" value="5" style="--accent:var(--lime);">
+          <span class="val" id="duration-v">5</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">FPS</label>
+          <input type="range" id="fps" min="10" max="60" step="1" value="60" style="--accent:var(--lime);">
+          <span class="val" id="fps-v">60</span>
+        </div>
+        <button id="rec-btn" class="btn">Export WEBM</button>
+        <button id="mp4-btn" class="btn">Export MP4</button>
+        <div id="rec-status" class="status-line"></div>
+        <div id="mp4-status" class="status-line"></div>
+      </div>
+    </details>
+
+    <div class="sidebar-foot">
+      <div class="row-between"><span>TW.TEXT</span><span>© 2026</span></div>
+      <div class="row-between"><span>⌘S SAVE</span><span>⌘E EXPORT</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-breadcrumb">Canvas / <b>TW Text</b></div>
+      </div>
+    </header>
+    <div id="preview" class="preview-wrap">
+      <canvas id="canvas"></canvas>
+      <div id="fmt-badge">1080 × 1440</div>
+    </div>
+  </main>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
