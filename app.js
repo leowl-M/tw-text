@@ -1198,25 +1198,47 @@ document.getElementById('mp4-btn').addEventListener('click', async () => {
     
     const encoder = new VideoEncoder({
       output: (chunk, meta) => {
+        // DEBUG — rimuovere dopo il debug
+        try {
+          console.log('[MP4-DEBUG] chunk type:', chunk.type, '| meta:', JSON.stringify(meta, (k, v) => v instanceof ArrayBuffer ? `ArrayBuffer(${v.byteLength})` : v));
+          console.log('[MP4-DEBUG] meta===null:', meta === null, '| meta===undefined:', meta === undefined);
+          if (meta) {
+            console.log('[MP4-DEBUG] meta.decoderConfig:', JSON.stringify(meta.decoderConfig, (k, v) => v instanceof ArrayBuffer ? `ArrayBuffer(${v.byteLength})` : v));
+            if (meta.decoderConfig) {
+              console.log('[MP4-DEBUG] meta.decoderConfig.colorSpace:', JSON.stringify(meta.decoderConfig.colorSpace));
+            }
+          }
+        } catch(logErr) { console.warn('[MP4-DEBUG] log error:', logErr) }
+
         let safeMeta = meta;
 
-        // Se Safari fornisce decoderConfig ma è problematico o manca il colorSpace
-        if (meta && meta.decoderConfig) {
-          safeMeta = {
-            ...meta,
-            decoderConfig: {
-              ...meta.decoderConfig,
-              colorSpace: meta.decoderConfig.colorSpace || {
-                primaries: 'bt709',
-                transfer: 'bt709',
-                matrix: 'bt709',
-                fullRange: false
+        if (meta) {
+          if (meta.decoderConfig) {
+            safeMeta = {
+              ...meta,
+              decoderConfig: {
+                ...meta.decoderConfig,
+                colorSpace: meta.decoderConfig.colorSpace || {
+                  primaries: 'bt709',
+                  transfer: 'bt709',
+                  matrix: 'bt709',
+                  fullRange: false
+                }
               }
-            }
-          };
+            };
+          } else {
+            const { decoderConfig: _, ...rest } = meta;
+            safeMeta = rest;
+          }
         }
-        
-        muxer.addVideoChunk(chunk, safeMeta);
+
+        console.log('[MP4-DEBUG] safeMeta prima di addVideoChunk:', JSON.stringify(safeMeta, (k, v) => v instanceof ArrayBuffer ? `ArrayBuffer(${v.byteLength})` : v));
+        try {
+          muxer.addVideoChunk(chunk, safeMeta);
+        } catch(muxErr) {
+          console.error('[MP4-DEBUG] CRASH in addVideoChunk:', muxErr, '| safeMeta era:', JSON.stringify(safeMeta, (k, v) => v instanceof ArrayBuffer ? `ArrayBuffer(${v.byteLength})` : v));
+          throw muxErr;
+        }
       },
       error: e => { throw e }
     });
@@ -1231,7 +1253,8 @@ document.getElementById('mp4-btn').addEventListener('click', async () => {
     for (let i = 0; i < total; i++) {
       S.lotties.forEach(l => { const f = ((i / fps) * l.anim.frameRate) % l.anim.totalFrames; l.anim.goToAndStop(f, true) })
       drawFrame((i / fps) * 1000)
-      const frame = new VideoFrame(canvas, { timestamp: Math.round((i / fps) * 1_000_000) })
+      const frameDuration = Math.round(1_000_000 / fps)
+      const frame = new VideoFrame(canvas, { timestamp: Math.round((i / fps) * 1_000_000), duration: frameDuration })
       encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 }); frame.close()
       if (i % 15 === 0) { setMP4Status(`Encoding frame ${i + 1}/${total}...`); await new Promise(r => setTimeout(r, 0)) }
     }
