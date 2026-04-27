@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TW Text</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/matter-js@0.20/build/matter.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lottie-web@5/build/player/lottie.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -181,6 +182,80 @@
       </div>
     </details>
 
+    <details class="sec" style="--sec-color:#4A60FF;">
+      <summary class="sec-head"><span class="sec-title">Pioggia</span><span class="sec-chev">▸</span></summary>
+      <div class="sec-body">
+        <label id="rain-upload-zone" class="drop" style="display:block;">
+          <input type="file" id="rain-images-input" accept="image/*" multiple style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;">
+          Carica immagini pioggia
+        </label>
+        <div id="rain-preview" style="display:none;flex-wrap:wrap;gap:4px;margin-top:8px;"></div>
+        <button id="rain-clear-images-btn" class="btn btn-inline" style="display:none;margin-top:4px;">Rimuovi immagini</button>
+        <div id="rain-sticker-section" style="display:none;margin-top:8px;" class="stack">
+          <div class="lbl" style="margin-bottom:4px;">Sticker sul canvas</div>
+          <div id="rain-sticker-list" style="display:flex;flex-direction:column;gap:3px;max-height:110px;overflow-y:auto;"></div>
+        </div>
+        <div id="rain-preset-section" style="display:none;margin-top:8px;" class="stack">
+          <div class="lbl" style="margin-bottom:4px;">Da libreria sticker</div>
+          <div id="rain-preset-list" style="display:flex;flex-direction:column;gap:3px;max-height:130px;overflow-y:auto;"></div>
+        </div>
+        <div class="hairline"></div>
+        <div class="field">
+          <label class="lbl">Effetto</label>
+          <select id="rain-effect" class="ipt ipt-select">
+            <option value="normal">Normale</option>
+            <option value="bouncy">Rimbalzo</option>
+            <option value="heavy">Pesante</option>
+            <option value="space">Spazio</option>
+            <option value="leaves">Foglie</option>
+            <option value="windRight">Vento →</option>
+            <option value="windLeft">← Vento</option>
+            <option value="explosion">Esplosione ↑</option>
+            <option value="popcorn">Popcorn</option>
+            <option value="cannons">Cannoni</option>
+            <option value="vortex">Vortice</option>
+            <option value="magnetic">Magnetico</option>
+            <option value="fluid">Fluido</option>
+          </select>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Quantità</label>
+          <input type="range" id="rain-amount" min="1" max="200" step="1" value="30" style="--accent:#4A60FF;">
+          <span class="val" id="rain-amount-v">30</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Misura</label>
+          <input type="range" id="rain-size" min="10" max="300" step="5" value="60" style="--accent:#4A60FF;">
+          <span class="val" id="rain-size-v">60</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Velocità</label>
+          <input type="range" id="rain-speed" min="0.2" max="4.0" step="0.1" value="1.0" style="--accent:#4A60FF;">
+          <span class="val" id="rain-speed-v">1.0</span>
+        </div>
+        <div class="row-between">
+          <span class="lbl">Caos</span>
+          <button id="rain-chaos" class="tog-btn-textual">OFF</button>
+        </div>
+        <div class="row-between">
+          <span class="lbl">Esplosivo</span>
+          <button id="rain-explosive" class="tog-btn-textual">OFF</button>
+        </div>
+        <div class="row-between">
+          <span class="lbl">Loop</span>
+          <button id="rain-loop" class="tog-btn-textual">OFF</button>
+        </div>
+        <div class="row-between">
+          <span class="lbl">Testo ostacolo</span>
+          <button id="rain-text-collision" class="tog-btn-textual">OFF</button>
+        </div>
+        <div class="row-gap" style="margin-top:8px;">
+          <button id="rain-spawn-btn" class="btn">Lancia</button>
+          <button id="rain-clear-btn" class="btn btn-inline">Pulisci</button>
+        </div>
+      </div>
+    </details>
+
     <details class="sec" open style="--sec-color:#F7F6EB;">
       <summary class="sec-head"><span class="sec-title">Tipografia</span><span class="sec-chev">▸</span></summary>
       <div class="sec-body">
@@ -272,12 +347,6 @@
     <div id="preview" class="preview-wrap">
       <canvas id="canvas" style="touch-action: none;"></canvas>
       <div id="fmt-badge">1080 × 1440</div>
-      <div id="layer-toolbar" class="layer-toolbar" aria-label="Layer controls">
-        <button id="layer-down-btn" class="layer-tool-btn" type="button" title="Indietro">-</button>
-        <button id="layer-up-btn" class="layer-tool-btn" type="button" title="Avanti">+</button>
-        <button id="layer-duplicate-btn" class="layer-tool-btn" type="button" title="Duplica">Dup</button>
-        <button id="layer-delete-btn" class="layer-tool-btn layer-tool-btn-danger" type="button" title="Elimina">Del</button>
-      </div>
     </div>
   </main>
 
