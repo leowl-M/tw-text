@@ -1030,7 +1030,8 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
   }
   .drawer-title { font-size: 12px; font-weight: 600; color: var(--fg); }
   .drawer-close-btn { background: transparent; border: none; color: var(--fg-dim); font-size: 20px; cursor: pointer; }
-  .drawer-body { padding: 16px; }
+  .drawer-body { padding: 16px; overflow-y: auto; }
+  .color-drawer, .sticker-drawer, .format-drawer, .image-drawer { max-height: calc(100vh - 120px); }
 }
 
 
