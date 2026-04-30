@@ -20,3 +20,15 @@ updateColor('bg', S.bgColor)
 syncTextUI()
 setFormat('post')
 loop()
+
+// Logo Lottie — metti logo.json nella root del progetto
+const bbLogoEl = document.getElementById('bb-logo-lottie')
+if (bbLogoEl && typeof lottie !== 'undefined') {
+  lottie.loadAnimation({
+    container: bbLogoEl,
+    renderer:  'svg',
+    loop:      true,
+    autoplay:  true,
+    path:      'logo.json'
+  })
+}

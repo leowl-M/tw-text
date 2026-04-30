@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TW Text</title>
+  <title>BombBox</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/matter-js@0.20/build/matter.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lottie-web@5/build/player/lottie.min.js"></script>
@@ -19,12 +19,12 @@
 
     <div class="brand">
       <div class="brand-left">
-        <div class="logo-mark">TW Text</div>
+        <div class="logo-mark">BOMbBOX</div>
       </div>
     </div>
 
     <details class="sec" style="--sec-color:#F7F6EB;">
-      <summary class="sec-head"><span class="sec-title">Preset</span><span class="sec-chev">▸</span></summary>
+      <summary class="sec-head"><span class="sec-title">Preset</span><span class="sec-chev"></span></summary>
       <div class="sec-body">
         <div class="row-gap">
           <input id="preset-name" type="text" class="ipt" placeholder="nome preset…">
@@ -36,7 +36,7 @@
     </details>
 
     <details class="sec" style="--sec-color:var(--lime);">
-      <summary class="sec-head"><span class="sec-title">Testo</span><span class="sec-chev">▸</span></summary>
+      <summary class="sec-head"><span class="sec-title">Testo</span><span class="sec-chev"></span></summary>
       <div class="sec-body">
         <div class="row-gap">
           <button id="text-add-btn" class="btn btn-inline">+ Aggiungi testo</button>
@@ -54,7 +54,7 @@
     </details>
 
     <details class="sec" style="--sec-color:var(--green);">
-      <summary class="sec-head"><span class="sec-title">Trasforma</span><span class="sec-chev">▸</span></summary>
+      <summary class="sec-head"><span class="sec-title">Trasforma</span><span class="sec-chev"></span></summary>
       <div class="sec-body">
         <div class="row-between">
           <span class="hint">Trascina sul canvas · angoli=scala · giallo=ruota</span>
@@ -83,8 +83,35 @@
       </div>
     </details>
 
+    <details class="sec" style="--sec-color:#F7F6EB;">
+      <summary class="sec-head"><span class="sec-title">Tipografia</span><span class="sec-chev"></span></summary>
+      <div class="sec-body">
+        <div class="field">
+          <label class="lbl">Font attivo</label>
+          <select id="font-select" class="ipt ipt-select font-display font-display-select">
+            <option value="" disabled>Caricamento font…</option>
+          </select>
+        </div>
+        <label for="font-input" id="font-zone" class="drop" style="display: block;">
+          <input type="file" id="font-input" accept=".ttf,.otf,.woff,.woff2" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">
+          Carica font (.ttf .otf .woff)
+        </label>
+        <div id="font-status-msg" class="status-line"></div>
+        <div class="slider-row">
+          <label class="lbl">Crenatura</label>
+          <input type="range" id="kerning" min="-20" max="200" step="1" value="0">
+          <span class="val" id="kerning-v">0</span>
+        </div>
+        <div class="slider-row">
+          <label class="lbl">Interlinea</label>
+          <input type="range" id="lh" min="0.5" max="3.0" step="0.05" value="1.0">
+          <span class="val" id="lh-v">1.0</span>
+        </div>
+      </div>
+    </details>
+
     <details class="sec" style="--sec-color:var(--pink);">
-      <summary class="sec-head"><span class="sec-title">Animazione</span><span class="sec-chev">▸</span></summary>
+      <summary class="sec-head"><span class="sec-title">Animazione</span><span class="sec-chev"></span></summary>
       <div class="sec-body">
         <div class="row-between">
           <span class="lbl">Tremolio lettere</span>
@@ -183,10 +210,10 @@
     </details>
 
     <details class="sec" style="--sec-color:#FF3EBA;">
-      <summary class="sec-head"><span class="sec-title">Ticker Scorrimento</span><span class="sec-chev">▸</span></summary>
+      <summary class="sec-head"><span class="sec-title">Scorrimento testo</span><span class="sec-chev"></span></summary>
       <div class="sec-body">
         <div class="row-between">
-          <span class="lbl">Testo scorrevole</span>
+          <span class="lbl">Scorrimento testo</span>
           <button id="scroll-toggle" class="tog-btn-textual">OFF</button>
         </div>
         <div id="scroll-controls" style="display:none;" class="stack">
@@ -227,7 +254,7 @@
     </details>
 
     <details class="sec" style="--sec-color:#4A60FF;">
-      <summary class="sec-head"><span class="sec-title">Pioggia</span><span class="sec-chev">▸</span></summary>
+      <summary class="sec-head"><span class="sec-title">Gravità</span><span class="sec-chev"></span></summary>
       <div class="sec-body">
         <label id="rain-upload-zone" class="drop" style="display:block;">
           <input type="file" id="rain-images-input" accept="image/*" multiple style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;">
@@ -300,56 +327,29 @@
       </div>
     </details>
 
-    <details class="sec" style="--sec-color:#F7F6EB;">
-      <summary class="sec-head"><span class="sec-title">Tipografia</span><span class="sec-chev">▸</span></summary>
-      <div class="sec-body">
-        <div class="field">
-          <label class="lbl">Font attivo</label>
-          <select id="font-select" class="ipt ipt-select font-display font-display-select">
-            <option value="" disabled>Caricamento font…</option>
-          </select>
-        </div>
-        <label for="font-input" id="font-zone" class="drop" style="display: block;">
-          <input type="file" id="font-input" accept=".ttf,.otf,.woff,.woff2" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">
-          Carica font (.ttf .otf .woff)
-        </label>
-        <div id="font-status-msg" class="status-line"></div>
-        <div class="slider-row">
-          <label class="lbl">Crenatura</label>
-          <input type="range" id="kerning" min="-20" max="200" step="1" value="0">
-          <span class="val" id="kerning-v">0</span>
-        </div>
-        <div class="slider-row">
-          <label class="lbl">Interlinea</label>
-          <input type="range" id="lh" min="0.5" max="3.0" step="0.05" value="1.0">
-          <span class="val" id="lh-v">1.0</span>
-        </div>
-      </div>
-    </details>
-
     <details class="sec" style="--sec-color:var(--lime);">
-      <summary class="sec-head"><span class="sec-title">Composizione</span><span class="sec-chev">▸</span></summary>
+      <summary class="sec-head"><span class="sec-title">Composizione</span><span class="sec-chev"></span></summary>
       <div class="sec-body">
         <div class="slider-row">
           <label class="lbl">Scale</label>
-          <input type="range" id="global-scale" min="0.1" max="1.0" step="0.01" value="1.0">
+          <input type="range" id="global-scale" min="0.1" max="1.0" step="0.01" value="1.0" style="--accent:var(--lime);">
           <span class="val" id="global-scale-v">1.0</span>
         </div>
         <div class="slider-row">
           <label class="lbl">Padding</label>
-          <input type="range" id="comp-pad-all" min="0" max="400" step="4" value="0">
+          <input type="range" id="comp-pad-all" min="0" max="400" step="4" value="0" style="--accent:var(--lime);">
           <span class="val" id="comp-pad-all-v">0</span>
         </div>
         <div class="slider-row">
           <label class="lbl">Radius bg</label>
-          <input type="range" id="bg-corner-radius" min="0" max="500" step="4" value="0">
+          <input type="range" id="bg-corner-radius" min="0" max="500" step="4" value="0" style="--accent:var(--lime);">
           <span class="val" id="bg-corner-radius-v">0</span>
         </div>
       </div>
     </details>
 
     <details class="sec" style="--sec-color:var(--lime);">
-      <summary class="sec-head"><span class="sec-title">Export</span><span class="sec-chev">▸</span></summary>
+      <summary class="sec-head"><span class="sec-title">Export</span><span class="sec-chev"></span></summary>
       <div class="sec-body">
         <div class="slider-row">
           <label class="lbl">Durata s</label>
@@ -371,7 +371,7 @@
     </details>
 
     <div class="sidebar-foot">
-      <div class="row-between"><span>TW.TEXT</span><span>© 2026</span></div>
+      <div class="row-between"><span>Design Bomb! 3</span><span>©2026</span></div>
       <div class="row-between"><span>⌘S SAVE</span><span>⌘E EXPORT</span></div>
     </div>
   </aside>
@@ -379,9 +379,11 @@
   <main class="main">
     <header class="topbar">
       <div class="topbar-left">
-        <div class="topbar-breadcrumb">Canvas / <b>TW Text</b></div>
+        <div class="topbar-breadcrumb">
+          <div id="bb-logo-lottie" class="bb-lottie-logo"></div>
+        </div>
       </div>
-      <div class="topbar-right" style="display: flex; gap: 8px;">
+      <div class="topbar-right">
         <button id="desktop-image-btn" class="btn btn-inline">Foto</button>
         <button id="desktop-format-btn" class="btn btn-inline">Formato</button>
         <button id="desktop-sticker-btn" class="btn btn-inline">Sticker</button>
